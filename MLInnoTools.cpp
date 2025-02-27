@@ -78,7 +78,7 @@ public:
         if (x.size() != y[0].size()){
             throw std::invalid_argument("Matrices shapes for model are not compatible for training.");
         }
-        }
+    }
     static void check_correctness_of_matrix(std::vector<std::vector<std::optional<float>>>& x) {
         if (x.size() == 0 && x[0].size() == 0){
             throw std::invalid_argument("Matrix is empty.");
@@ -197,23 +197,7 @@ public:
     }
 };  
 
-class RegressionModel{
-public:
-    RegressionModel(){}
-
-    virtual void train(const py::object X, const py::object Y, float learnRate) = 0;
-    
-    virtual std::vector<float> predict(const py::object X) = 0;
-
-    virtual float predict_cpp(std::vector<std::vector<std::optional<float>>>& X) = 0;
-
-protected:
-    std::vector<std::vector<std::optional<float>>> weights;
-    float shift;
-    bool isTrained;
-};
-
-class LinearRegressionModel : public RegressionModel {
+class LinearRegressionModel {
 protected:
     std::vector<std::vector<std::optional<float>>> weights;
     float shift;
@@ -221,7 +205,7 @@ protected:
     float l1;
     float l2;
 public:
-    LinearRegressionModel() : RegressionModel() {
+    LinearRegressionModel() {
         isTrained = false;
         shift = 0.0f;
         l1 = 0.0f;
@@ -236,7 +220,7 @@ public:
         l2 = num;
     }
 
-    void train(const py::object X, const py::object Y, float learnRate) override {
+    void train(const py::object X, const py::object Y, float learnRate){
         weights.clear();
         std::vector<std::vector<std::optional<float>>> data;
         std::vector<std::vector<std::optional<float>>> target;
@@ -261,7 +245,7 @@ public:
         }
     }
 
-    float predict_cpp(std::vector<std::vector<std::optional<float>>>& X) override {
+    float predict_cpp(std::vector<std::vector<std::optional<float>>>& X){
         MLMath::check_correctness_of_matrix(X);
         if (weights.size() == 0) {
             throw std::invalid_argument("Model is not trained.");
@@ -274,7 +258,7 @@ public:
     }
 
     // predicts according to saved values
-    std::vector<float> predict(const py::object X) override {
+    std::vector<float> predict(const py::object X) {
         std::vector<std::vector<std::optional<float>>> data;
         Parser::convert_to_2D_vector(X, data);
         std::vector<float> result;
@@ -320,6 +304,133 @@ private:
         }
     }
 };
+class PolynomialRegressionModel {
+    protected:
+        std::vector<std::vector<std::optional<float>>> weights;
+        float shift;
+        bool isTrained;
+        float l1;
+        float l2;
+        std::vector<std::vector<std::optional<float>>> degrees;
+    
+        std::vector<std::optional<float>> transform_features(const std::vector<std::optional<float>>& sample) {
+            if (sample.size() != degrees[0].size()) {
+                throw std::invalid_argument("Sample size does not match degrees size.");
+            }
+            std::vector<std::optional<float>> transformed;
+            for (size_t j = 0; j < sample.size(); j++) {
+                if (sample[j] && degrees[0][j]) {
+                    transformed.push_back(std::pow(sample[j].value(), degrees[0][j].value()));
+                } else {
+                    throw std::invalid_argument("Null value in sample or degrees at index " + std::to_string(j));
+                }
+            }
+            return transformed;
+        }
+    
+    public:
+        PolynomialRegressionModel() {
+            isTrained = false;
+            shift = 0.0f;
+            l1 = 0.0f;
+            l2 = 0.0f;
+        }
+    
+        void set_l1(float num) {
+            l1 = num;
+        }
+    
+        void set_l2(float num) {
+            l2 = num;
+        }
+    
+        void train(const py::object X, const py::object Y, const py::object Z, float learnRate) {
+            weights.clear();
+            std::vector<std::vector<std::optional<float>>> data;
+            std::vector<std::vector<std::optional<float>>> target;
+            Parser::convert_to_2D_vector(X, data);
+            Parser::convert_to_2D_vector(Y, target);
+            Parser::convert_to_2D_vector(Z, degrees);
+            MLMath::check_correctness_of_matrix(data);
+            MLMath::check_correctness_of_matrix(target);
+            MLMath::check_correctness_of_matrix(degrees);
+    
+            if (degrees.size() != 1 || degrees[0].size() != data[0].size()) {
+                throw std::invalid_argument("Degrees must be a single row matching the number of features.");
+            }
+    
+            MLMath::check_shapes_for_training(data, target);
+    
+            for (size_t j = 0; j < data[0].size(); j++) {
+                std::vector<std::optional<float>> tempRow;
+                tempRow.push_back(0);
+                weights.push_back(tempRow);
+            }
+
+            for (int i = 0; i < 1000; i++) {
+                iterate_updating_weights(data, target, learnRate);
+                for (size_t j = 0; j < weights.size(); j++) {
+                    std::cout << std::to_string(weights[j][0].value()) + " ";
+                }
+                std::cout << std::endl;
+            }
+            isTrained = true;
+        }
+    
+        float predict_cpp(std::vector<std::vector<std::optional<float>>>& X) {
+            MLMath::check_correctness_of_matrix(X);
+            if (weights.size() == 0) {
+                throw std::invalid_argument("Model is not trained.");
+            }
+            std::vector<std::optional<float>> transformed = transform_features(X[0]);
+            std::vector<std::vector<std::optional<float>>> transformed_X = {transformed};
+            MLMath::check_shapes_for_prediction(transformed_X, weights);
+            std::vector<std::vector<std::optional<float>>> preResult = MLMath::product(transformed_X, weights);
+            std::optional<float> result = preResult[0][0];
+            float result_value = result.value() + shift;
+            return result_value;
+        }
+    
+        std::vector<float> predict(const py::object X) {
+            std::vector<std::vector<std::optional<float>>> data;
+            Parser::convert_to_2D_vector(X, data);
+            std::vector<float> result;
+            for (size_t i = 0; i < data.size(); i++) {
+                std::vector<std::vector<std::optional<float>>> temp;
+                temp.push_back(data[i]);
+                result.push_back(predict_cpp(temp));
+            }
+            return result;
+        }
+    
+    private:
+        void iterate_updating_weights(std::vector<std::vector<std::optional<float>>>& data,
+                                      std::vector<std::vector<std::optional<float>>>& target,
+                                      float learn_rate) {
+            float sum = 0;
+            std::vector<float> delta(weights.size(), 0.0f);
+            for (size_t i = 0; i < data.size(); i++) {
+                std::vector<std::optional<float>> transformed = transform_features(data[i]);
+                std::vector<std::vector<std::optional<float>>> tempVector = {transformed};
+                float prediction = predict_cpp(tempVector);
+                float error = prediction - target[0][i].value();
+                sum += error;
+                for (size_t j = 0; j < weights.size(); j++) {
+                    delta[j] += error * transformed[j].value();
+                }
+            }
+    
+            shift -= learn_rate * (sum / data.size());
+            update_weights(delta, learn_rate);
+        }
+    
+        void update_weights(std::vector<float> delta, float learn_rate) {
+            for (size_t i = 0; i < weights.size(); i++) {
+                float grad = delta[i] / weights.size();
+                weights[i][0] = weights[i][0].value() - learn_rate * (grad + l1 * MLMath::sign(weights[i][0].value()) + 2 * l2 * weights[i][0].value());
+            }
+        }
+    };
 
 PYBIND11_MODULE(MLInnoTools, m) {
     py::class_<LinearRegressionModel>(m, "LinearRegressionModel")
@@ -328,4 +439,14 @@ PYBIND11_MODULE(MLInnoTools, m) {
         .def("predict", &LinearRegressionModel::predict)
         .def("set_l1", &LinearRegressionModel::set_l1)
         .def("set_l2", &LinearRegressionModel::set_l2);
+        py::class_<PolynomialRegressionModel>(m, "PolynomialRegressionModel")
+        .def(py::init())
+        .def("train", &PolynomialRegressionModel::train)
+        .def("predict", &PolynomialRegressionModel::predict)
+        .def("set_l1", &PolynomialRegressionModel::set_l1)
+        .def("set_l2", &PolynomialRegressionModel::set_l2);
 }
+
+
+
+
