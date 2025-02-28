@@ -1,4 +1,4 @@
-# MLInnoTools
+# MLTools
 This app provides a friendly designed app, which helps data-analysts to make their hypothesis testing according to data faster or anything else better. Common users do not have to write tons of code to apply any of ML algorithms.
 ## Users are able to
 - Make necessary plots
