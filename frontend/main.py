@@ -1,6 +1,7 @@
 # To run it u can use streamlit run main.py if you are in the current directory, else use streamlit run frontend/main.py
 
 import streamlit as st
+import requests
 
 st.header("MLTools")
 st.write("This site provides an easy interface with almost automatically trained ML model that runs on C++.")
@@ -69,6 +70,13 @@ if model == "Linear Regression":
     if st.button("Train Model"):
         st.write(
             f"Training Linear Regression with L1: {l1_coefficient}, Learning Rate: {learning_rate}, L2: {l2_coefficient}")
+        try:
+            response = requests.get(f"http://fastapi:8000/chetotam?arg_name={l2_coefficient}")
+            response.raise_for_status()
+            data = response.json()
+            # Добавить потом проверку, если какие-то траблы, вывести сюда, если ввсе чики пуки, значит охуенчик
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error connecting to the API: {e}")
 
 elif model == "Logistic Regression":
     st.write("Logistic Regression selected. Add parameters if needed.")
