@@ -2,6 +2,12 @@
 
 import streamlit as st
 import requests
+import os
+import json
+
+API_HOST = os.getenv("API_SERVICE_HOST", "api_service")
+API_PORT = os.getenv("API_SERVICE_PORT", "8000")
+API_URL = f"http://{API_HOST}:{API_PORT}"
 
 st.header("MLTools")
 st.write("This site provides an easy interface with almost automatically trained ML model that runs on C++.")
