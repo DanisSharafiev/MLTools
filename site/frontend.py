@@ -89,4 +89,4 @@ elif model == "Logistic Regression":
 elif model == "Decision Tree":
     st.write("Decision Tree selected. Add parameters if needed.")
 
-st.write("For more details, contact support or check our documentation.")
+st.write("bebebobebebebebeba")

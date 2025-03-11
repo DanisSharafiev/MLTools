@@ -1,0 +1,105 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    volumes:
+      - ./site:/app
+    depends_on:
+      - storage
+      - models
+    environment:
+      - API_SERVICE_HOST=models
+      - API_SERVICE_PORT=8000
+      - STORAGE_URL=http://mockstorage:9000
+      - STORAGE_ACCESS_KEY=mock
+      - STORAGE_SECRET_KEY=mock
+      - STORAGE_BUCKET=mock
+    networks:
+      - ml_network
+
+  models:
+    build:
+      context: ./model_usage
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./model_usage:/app
+    depends_on:
+      - storage
+      - database
+    environment:
+      - STORAGE_URL=http://storage:9000
+      - STORAGE_ACCESS_KEY=minioadmin
+      - STORAGE_SECRET_KEY=minioadmin
+      - STORAGE_BUCKET=mlinnotools-models
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=mock_user
+      - DB_PASSWORD=mock_password
+      - DB_NAME=mock_db
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - ml_network
+
+  storage:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - storage-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - ml_network
+
+  database:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=mock_user
+      - POSTGRES_PASSWORD=mock_password
+      - POSTGRES_DB=mock_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ml_network
+
+  s3_client:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    volumes:
+      - ./database:/app
+    depends_on:
+      - storage
+    environment:
+      - STORAGE_URL=http://mockstorage:9000
+      - STORAGE_ACCESS_KEY=mock
+      - STORAGE_SECRET_KEY=mock
+      - STORAGE_BUCKET=mock
+    command: ["python", "-c", "import asyncio; from main import main; asyncio.run(main())"]
+    networks:
+      - ml_network
+
+networks:
+  ml_network:
+
+volumes:
+  storage-data:
+  postgres-data:
