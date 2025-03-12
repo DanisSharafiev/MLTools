@@ -19,6 +19,8 @@ async def upload(file: UploadFile = File(...)):
             content = await file.read()
             buffer.write(content)
         
+        request = requests.post("http://database:")
+
         return {"filename": file.filename, "saved_location": file_location}
     except Exception as e:
         return {"error": f"Failed to save file: {str(e)}"}
