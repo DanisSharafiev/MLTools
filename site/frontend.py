@@ -32,9 +32,9 @@ if st.button("Or find it in the database"):
     st.write("Database selection feature is under development.")
 
 st.subheader("Choose a model")
-model = st.selectbox("Choose a model", ["Linear Regression", "Logistic Regression", "Decision Tree"])
+model = st.selectbox("Choose a model", ["Linear Regression", "Polynomial Regression"])
 
-if model == "Linear Regression":
+if model == "Linear Regression" or model == "Polynomial Regression":
     st.subheader("Model Parameters")
 
     col1, col2, col3 = st.columns(3)
@@ -77,7 +77,7 @@ if model == "Linear Regression":
         st.write(
             f"Training Linear Regression with L1: {l1_coefficient}, Learning Rate: {learning_rate}, L2: {l2_coefficient}")
         try:
-            response = requests.get(f"{API_URL}/train", params={"model": "linear_regression",
+            response = requests.get(f"{API_URL}/train", params={"model": model,
                                                                  "l1": l1_coefficient,
                                                                  "lr": learning_rate,
                                                                  "l2": l2_coefficient})
@@ -88,7 +88,7 @@ if model == "Linear Regression":
     input_data = st.text_area("Enter data for prediction", value="1,2,3,4,5")
     if st.button("Predict"):
         try:
-            response = requests.post(f"{API_URL}/predict", json={"data": input_data, "model" : model})
+            response = requests.post(f"{API_URL}/predict", json={"features": input_data})
             response.raise_for_status()
             prediction = response.json()
             st.write(f"Prediction: {prediction}")

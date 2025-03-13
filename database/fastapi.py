@@ -14,7 +14,7 @@ def startup_event():
     app.state.s3 = S3Client(
                 access_key = "mockadmin",
                 secret_key= "mockadmin",
-                endpoint_url= "http://mock.ru:9000",
+                endpoint_url= "http://mock.ru",
                 bucket_name= "mock",
         )
     print("[INFO] Databases are ready")
@@ -27,6 +27,11 @@ def shutdown_event():
 def create_file(file: UploadFile = File(...)):
     query = "INSERT INTO files (name, content) VALUES (%s, %s) RETURNING name, content"
     result = app.state.db.execute_query(query, (file.name, file.content))
+    file_location = f"./files/{file.filename}"
+    with open(file_location, "wb") as f:
+        f.write(file.file.read())
+    url = app.state.s3.upload_file(file_location)
+    app.state.db.add_file(file.name, url)
     if not result:
         raise HTTPException(status_code=400, detail="File not created")
     return result[0]
@@ -41,3 +46,12 @@ def read_file(file_name: str):
 @app.get("/files/")
 def read_files():
     return app.state.db.select_all_files()
+
+@app.post("/history/")
+def create_history_entry(file_name: str, features: List[str], target: str, model_type: str):
+    app.state.db.add_history_entry(file_name, features, target, model_type)
+    return {"message": "History entry created successfully"}
+
+@app.get("/history/")
+def read_history():
+    return app.state.db.show_history()

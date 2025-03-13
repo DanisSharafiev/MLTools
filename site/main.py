@@ -13,11 +13,14 @@ class ModelHyperParams(BaseModel):
     l1_coefficient: float
     learning_rate: float
     l2_coefficient: float
+    model: str
 
 @app.on_event("startup")
 def startup_event():
     print("Starting up")
     app.state.file = None
+    app.state.file_name = None
+    app.state.model = None
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
@@ -28,6 +31,7 @@ async def upload(file: UploadFile = File(...)):
             content = await file.read()
             buffer.write(content)
             app.state.file = file_location
+            app.state.file_name = file.filename
         
         request = requests.post("http://fastapi:8004/", files={"file": open(file_location, "rb")})
 
@@ -41,6 +45,7 @@ async def train_model(params: ModelHyperParams):
         return {"error": "No file uploaded"}
     df = pd.read_csv(app.state.file)
     df = preprocess_data(df)
+    app.state.model = params.model
     params = {**params, "data": df.to_dict()}
     try:
         response = requests.post("http://model:8003/train", json=params)
@@ -56,6 +61,14 @@ async def predict(features : List[Any]):
     try:
         response = requests.post("http://model:8003/predict", json={"features": df.to_dict()})
         response.raise_for_status()
+        data = {
+            "file_name": app.state.file_name,
+            "features": features,
+            "target": response["prediction"],
+            "model_type": app.state.model
+        }
+        second_response = requests.post("http://database:8004/history", json={"prediction": response.json()})
         return response.json()
     except requests.exceptions.RequestException as e:
         return {"error": f"Failed to make prediction: {str(e)}"}
+    

@@ -35,27 +35,5 @@ class S3Client:
         return await self.get_object_url(object_name)
 
     async def get_object_url(self, object_name: str):
-        """Получить прямую ссылку на объект (для публичных объектов)."""
         url = f"{self.config['endpoint_url']}/{self.bucket_name}/{object_name}"
         return url
-
-# Пример использования
-async def main():
-    s3_client = S3Client(
-        access_key="your_access_key",
-        secret_key="your_secret_key",
-        endpoint_url="https://s3.amazonaws.com",  # Или ваш endpoint, например, MinIO
-        bucket_name="your-bucket",
-    )
-
-    # Загрузка файла и получение прямой ссылки
-    file_url = await s3_client.upload_file("path/to/your/file.stl")
-    print(f"Direct URL: {file_url}")
-
-    # Получение подписанной ссылки для объекта
-    presigned_url = await s3_client.get_presigned_url("file.stl")
-    print(f"Presigned URL: {presigned_url}")
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())

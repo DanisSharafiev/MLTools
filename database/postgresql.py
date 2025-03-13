@@ -50,7 +50,7 @@ class PostgresClient:
         """
         self.execute_query(query)
         query = """
-        CREATE TABLE IF NOT EXISTS models (
+        CREATE TABLE IF NOT EXISTS history (
             id SERIAL PRIMARY KEY,
             file_name VARCHAR(255) NOT NULL,
             features VARCHAR(255) NOT NULL,
@@ -59,6 +59,23 @@ class PostgresClient:
         );
         """
         self.execute_query(query)
+
+    def add_history_entry(
+            self, 
+            file_name: str, 
+            features: str, 
+            target: str, 
+            model_type: str):
+        query = "INSERT INTO history (file_name, features, target, model_type) VALUES (%s, %s, %s, %s)"
+        self.execute_query(query, (file_name, features, target, model_type))
+
+    def show_history(self):
+        query = "SELECT * FROM history"
+        return self.execute_query(query)
+    
+    def add_file(self, file_name: str, url: str):
+        query = "INSERT INTO files (name, url) VALUES (%s, %s) RETURNING name, url"
+        return self.execute_query(query, (file_name, url))
 
     def select_file(self, file_name: str):
         query = "SELECT * FROM files WHERE name = %s"
