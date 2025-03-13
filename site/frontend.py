@@ -77,16 +77,21 @@ if model == "Linear Regression":
         st.write(
             f"Training Linear Regression with L1: {l1_coefficient}, Learning Rate: {learning_rate}, L2: {l2_coefficient}")
         try:
-            response = requests.get(f"http://fastapi:8000/chetotam?arg_name={l2_coefficient}")
+            response = requests.get(f"{API_URL}/train", params={"model": "linear_regression",
+                                                                 "l1": l1_coefficient,
+                                                                 "lr": learning_rate,
+                                                                 "l2": l2_coefficient})
             response.raise_for_status()
             data = response.json()
-            # Добавить потом проверку, если какие-то траблы, вывести сюда, если ввсе чики пуки, значит охуенчик
         except requests.exceptions.RequestException as e:
             st.error(f"Error connecting to the API: {e}")
-
-elif model == "Logistic Regression":
-    st.write("Logistic Regression selected. Add parameters if needed.")
-elif model == "Decision Tree":
-    st.write("Decision Tree selected. Add parameters if needed.")
-
+    input_data = st.text_area("Enter data for prediction", value="1,2,3,4,5")
+    if st.button("Predict"):
+        try:
+            response = requests.post(f"{API_URL}/predict", json={"data": input_data, "model" : model})
+            response.raise_for_status()
+            prediction = response.json()
+            st.write(f"Prediction: {prediction}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error connecting to the API: {e}")
 st.write("bebebobebebebebeba")

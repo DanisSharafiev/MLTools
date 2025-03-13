@@ -1,4 +1,4 @@
-// g++ -O3 -Wall -shared -std=c++17 -fPIC $(python3-config --includes) MLInnoTools.cpp -o ml_inno_tools$(python3-config --extension-suffix)
+// g++ -O3 -Wall -shared -std=c++17 -fPIC $(python3-config --includes) MLTools.cpp -o ml_tools$(python3-config --extension-suffix)
 
 #include <type_traits>
 #include <pybind11/pybind11.h>
@@ -343,7 +343,7 @@ class PolynomialRegressionModel {
         void set_l2(float num) {
             l2 = num;
         }
-    
+
         void train(const py::object X, const py::object Y, const py::object Z, float learnRate) {
             weights.clear();
             std::vector<std::vector<std::optional<float>>> data;
@@ -432,7 +432,7 @@ class PolynomialRegressionModel {
         }
     };
 
-PYBIND11_MODULE(MLInnoTools, m) {
+PYBIND11_MODULE(MLTools, m) {
     py::class_<LinearRegressionModel>(m, "LinearRegressionModel")
         .def(py::init())
         .def("train", &LinearRegressionModel::train)

@@ -37,7 +37,37 @@ class PostgresClient:
                 return cursor.fetchall()
             conn.commit()
             return []
-        
+    
+    # Could be done with a SQLModel
+
+    def create_tables(self):
+        query = """
+        CREATE TABLE IF NOT EXISTS files (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            url VARCHAR(255) NOT NULL
+        );
+        """
+        self.execute_query(query)
+        query = """
+        CREATE TABLE IF NOT EXISTS models (
+            id SERIAL PRIMARY KEY,
+            file_name VARCHAR(255) NOT NULL,
+            features VARCHAR(255) NOT NULL,
+            target VARCHAR(255) NOT NULL,
+            model_type VARCHAR(255) NOT NULL,
+        );
+        """
+        self.execute_query(query)
+
+    def select_file(self, file_name: str):
+        query = "SELECT * FROM files WHERE name = %s"
+        return self.execute_query(query, (file_name,))
+    
+    def select_all_files(self):
+        query = "SELECT * FROM files"
+        return self.execute_query(query)
+
     def close(self):
         if self.conn is not None:
             self.conn.close()

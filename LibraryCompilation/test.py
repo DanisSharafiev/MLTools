@@ -1,5 +1,5 @@
 import numpy as np
-from MLInnoTools import PolynomialRegressionModel
+from MLTools import PolynomialRegressionModel
 from sklearn.metrics import mean_squared_error
 
 def generate_data(n_samples=100):
