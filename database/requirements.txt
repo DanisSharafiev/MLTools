@@ -1,1 +1,5 @@
 psycopg2
+aiobotocore
+fastapi
+pydantic
+requests
